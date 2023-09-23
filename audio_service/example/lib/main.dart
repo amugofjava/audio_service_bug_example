@@ -77,10 +77,16 @@ class MainScreen extends StatelessWidget {
               },
             ),
             // Play/pause/stop buttons.
+            StreamBuilder<PlaybackState>(
+                stream: _audioHandler.playbackState,
+                builder: (context, snapshot) {
+                  if (snapshot.hasData) {
+                    print(snapshot.data?.processingState);
+                  }
+                  return const Text('Ignore me');
+                }),
             StreamBuilder<bool>(
-              stream: _audioHandler.playbackState
-                  .map((state) => state.playing)
-                  .distinct(),
+              stream: _audioHandler.playbackState.map((state) => state.playing).distinct(),
               builder: (context, snapshot) {
                 final playing = snapshot.data ?? false;
                 return Row(
@@ -113,14 +119,10 @@ class MainScreen extends StatelessWidget {
             ),
             // Display the processing state.
             StreamBuilder<AudioProcessingState>(
-              stream: _audioHandler.playbackState
-                  .map((state) => state.processingState)
-                  .distinct(),
+              stream: _audioHandler.playbackState.map((state) => state.processingState).distinct(),
               builder: (context, snapshot) {
-                final processingState =
-                    snapshot.data ?? AudioProcessingState.idle;
-                return Text(
-                    "Processing state: ${describeEnum(processingState)}");
+                final processingState = snapshot.data ?? AudioProcessingState.idle;
+                return Text("Processing state: ${describeEnum(processingState)}");
               },
             ),
           ],
@@ -131,11 +133,8 @@ class MainScreen extends StatelessWidget {
 
   /// A stream reporting the combined state of the current media item and its
   /// current position.
-  Stream<MediaState> get _mediaStateStream =>
-      Rx.combineLatest2<MediaItem?, Duration, MediaState>(
-          _audioHandler.mediaItem,
-          AudioService.position,
-          (mediaItem, position) => MediaState(mediaItem, position));
+  Stream<MediaState> get _mediaStateStream => Rx.combineLatest2<MediaItem?, Duration, MediaState>(
+      _audioHandler.mediaItem, AudioService.position, (mediaItem, position) => MediaState(mediaItem, position));
 
   IconButton _button(IconData iconData, VoidCallback onPressed) => IconButton(
         icon: Icon(iconData),
@@ -153,14 +152,12 @@ class MediaState {
 
 /// An [AudioHandler] for playing a single item.
 class AudioPlayerHandler extends BaseAudioHandler with SeekHandler {
-  static final _item = MediaItem(
-    id: 'https://s3.amazonaws.com/scifri-episodes/scifri20181123-episode.mp3',
-    album: "Science Friday",
-    title: "A Salute To Head-Scratching Science",
-    artist: "Science Friday and WNYC Studios",
-    duration: const Duration(milliseconds: 5739820),
-    artUri: Uri.parse(
-        'https://media.wnyc.org/i/1400/1400/l/80/1/ScienceFriday_WNYCStudios_1400.jpg'),
+  static const _item = MediaItem(
+    id: 'http://open.live.bbc.co.uk/mediaselector/6/redir/version/2.0/mediaset/audio-nondrm-download/proto/http/vpid/p0gdhmn8.mp3',
+    album: "BBC",
+    title: "The Archers",
+    artist: "BBC",
+    duration: Duration(milliseconds: 827000),
   );
 
   final _player = AudioPlayer();
@@ -201,6 +198,9 @@ class AudioPlayerHandler extends BaseAudioHandler with SeekHandler {
   /// just_audio player will be transformed into an audio_service state so that
   /// it can be broadcast to audio_service clients.
   PlaybackState _transformEvent(PlaybackEvent event) {
+    print('Transforming event ${event.processingState}');
+    print(' - Playing is ${_player.playing}');
+
     return PlaybackState(
       controls: [
         MediaControl.rewind,
